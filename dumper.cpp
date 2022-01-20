@@ -20,6 +20,7 @@
 #include "pro.h"     // for basic types.
 #include "ida.hpp"   // for ida constants and types.
 #include "idp.hpp"   // for interface version
+#include "dbg.hpp"   // for 'dbg' global variable
 #include "netnode.hpp"  // for RootNode
 
 #include "expr.hpp"  // for IDCFuncs
@@ -34,7 +35,7 @@ struct funcset_t {
 funcset_t *find_idcfuncs()
 {
     uint64_t *p = (uint64_t*)&callui;
-    uint64_t *pend = (uint64_t*)&ph;
+    uint64_t *pend = (uint64_t*)&dbg;
     p++;
     while (p<pend && *p==0)
         p++;
@@ -131,12 +132,23 @@ typedef struct {
     uint32_t namelen;
     uint32_t name_alloced;
 } srcfile4_t;
-typedef struct __attribute__((packed)) {
+#ifdef _WIN32
+#define PACKED
+#pragma pack(push,1)
+#else
+#define PACKED __attribute__((packed))
+#endif
+typedef struct PACKED {
     uint32_t unk0;
     char *filename;
     uint64_t namelen;
     uint64_t name_alloced;
 } srcfile6_t;
+#ifdef _WIN32
+#pragma pack(pop)
+#else
+#define PACKED __attribute__((packed))
+#endif
 
 typedef struct {
     uint32_t ofs;
@@ -947,10 +959,10 @@ void disassemble(std::ostream&os, const uint8_t *body, int len)
 }
 void funcbody(std::ostream&os, const char *name)
 {
-    int nargs=0;
-    size_t bodylen=0;
 
 #if (IDP_INTERFACE_VERSION>=70) && (IDA_SDK_VERSION<700)
+    int nargs=0;
+    size_t bodylen=0;
 // get_idc_func_body is only available since version 4.70
     uint8_t *body= get_idc_func_body(name, &nargs, &bodylen);
     if (body)
